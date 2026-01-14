@@ -60,57 +60,27 @@ class XResearcher:
             )
             chat.append(user(query))
 
-            # Stream and collect response
+            # Stream and collect response silently
             content = ""
             tool_calls = []
             response = None
-            last_printed_tokens = 0
-            is_thinking = True
-
-            print(f"\n🔍 Researching: {query}\n")
 
             for resp, chunk in chat.stream():
-                response = resp  # Keep latest response object
+                response = resp
 
-                # Track tool calls
+                # Track tool calls (silently)
                 if chunk.tool_calls:
                     for tool_call in chunk.tool_calls:
-                        tool_info = {
-                            "name": tool_call.function.name,
-                            "arguments": tool_call.function.arguments,
-                        }
-                        tool_calls.append(tool_info)
-                        # Clear thinking line before printing tool call
-                        if is_thinking:
-                            print("\r" + " " * 40 + "\r", end="")
-                        print(f"  🔧 {tool_call.function.name}")
-
-                # Track thinking (only update every 100 tokens to reduce spam)
-                if response.usage and response.usage.reasoning_tokens and is_thinking:
-                    current_tokens = response.usage.reasoning_tokens
-                    if current_tokens - last_printed_tokens >= 100:
-                        print(
-                            f"\r  💭 Thinking... ({current_tokens} tokens)",
-                            end="",
-                            flush=True,
+                        tool_calls.append(
+                            {
+                                "name": tool_call.function.name,
+                                "arguments": tool_call.function.arguments,
+                            }
                         )
-                        last_printed_tokens = current_tokens
 
-                # Accumulate and display content
+                # Accumulate content
                 if chunk.content:
-                    # Clear thinking line when content starts
-                    if is_thinking:
-                        final_tokens = (
-                            response.usage.reasoning_tokens if response.usage else 0
-                        )
-                        print(
-                            f"\r  💭 Done thinking ({final_tokens} tokens)" + " " * 10
-                        )
-                        is_thinking = False
                     content += chunk.content
-                    print(chunk.content, end="", flush=True)
-
-            print()  # Newline after streaming
 
             duration = time.time() - start_time
 
