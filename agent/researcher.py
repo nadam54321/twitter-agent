@@ -64,6 +64,8 @@ class XResearcher:
             content = ""
             tool_calls = []
             response = None
+            last_printed_tokens = 0
+            is_thinking = True
 
             print(f"\n🔍 Researching: {query}\n")
 
@@ -78,18 +80,33 @@ class XResearcher:
                             "arguments": tool_call.function.arguments,
                         }
                         tool_calls.append(tool_info)
-                        print(f"  🔧 Calling: {tool_call.function.name}")
+                        # Clear thinking line before printing tool call
+                        if is_thinking:
+                            print("\r" + " " * 40 + "\r", end="")
+                        print(f"  🔧 {tool_call.function.name}")
 
-                # Track thinking (reasoning tokens)
-                if response.usage and response.usage.reasoning_tokens:
-                    print(
-                        f"\r  💭 Thinking... ({response.usage.reasoning_tokens} tokens)",
-                        end="",
-                        flush=True,
-                    )
+                # Track thinking (only update every 100 tokens to reduce spam)
+                if response.usage and response.usage.reasoning_tokens and is_thinking:
+                    current_tokens = response.usage.reasoning_tokens
+                    if current_tokens - last_printed_tokens >= 100:
+                        print(
+                            f"\r  💭 Thinking... ({current_tokens} tokens)",
+                            end="",
+                            flush=True,
+                        )
+                        last_printed_tokens = current_tokens
 
                 # Accumulate and display content
                 if chunk.content:
+                    # Clear thinking line when content starts
+                    if is_thinking:
+                        final_tokens = (
+                            response.usage.reasoning_tokens if response.usage else 0
+                        )
+                        print(
+                            f"\r  💭 Done thinking ({final_tokens} tokens)" + " " * 10
+                        )
+                        is_thinking = False
                     content += chunk.content
                     print(chunk.content, end="", flush=True)
 
