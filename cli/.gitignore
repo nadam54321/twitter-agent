@@ -1,0 +1,9 @@
+# Dependencies
+node_modules/
+
+# Build output
+bin/
+dist/
+
+# Lock files (optional - can include if you want reproducible builds)
+# bun.lock

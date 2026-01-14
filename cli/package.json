@@ -1,0 +1,20 @@
+{
+  "name": "x-research",
+  "version": "1.0.0",
+  "description": "CLI tool for deep research on X/Twitter using Grok AI",
+  "type": "module",
+  "bin": {
+    "x-research": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "bun build ./src/index.ts --outdir ./dist --target node",
+    "compile": "bun build ./src/index.ts --compile --outfile ./bin/x-research",
+    "dev": "bun run ./src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  }
+}
