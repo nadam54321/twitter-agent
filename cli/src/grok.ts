@@ -55,7 +55,7 @@ export interface StreamCallbacks {
 }
 
 const GROK_API_URL = "https://api.x.ai/v1/chat/completions";
-const DEFAULT_MODEL = "grok-3-fast";
+const DEFAULT_MODEL = "grok-4-1-fast-reasoning";
 
 const SYSTEM_PROMPT = `You are a research assistant specializing in finding information on X (Twitter) and the web.
 
@@ -93,6 +93,13 @@ export async function research(
         { role: "user", content: query },
       ],
       stream: false,
+      search_parameters: {
+        mode: "auto",
+        sources: [
+          { type: "x" },
+          { type: "web" }
+        ]
+      },
     }),
   });
 
@@ -160,6 +167,13 @@ export async function researchStream(
         { role: "user", content: query },
       ],
       stream: true,
+      search_parameters: {
+        mode: "auto",
+        sources: [
+          { type: "x" },
+          { type: "web" }
+        ]
+      },
     }),
   });
 
