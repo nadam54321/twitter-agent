@@ -20,4 +20,5 @@ ENV/
 *.swo
 
 # Project
-.sisyphus/notepads/
+.sisyphus/
+twitter_api_providers_research.md
