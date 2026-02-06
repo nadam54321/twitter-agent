@@ -1,6 +1,6 @@
 /**
  * Configuration management for x-research CLI
- * Handles API key storage and retrieval
+ * Handles OpenRouter API key storage and retrieval
  */
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
@@ -50,7 +50,7 @@ export function saveConfig(config: Config): void {
 /**
  * Get API key from (in order of priority):
  * 1. Command line argument
- * 2. Environment variable XAI_API_KEY
+ * 2. Environment variable OPENROUTER_API_KEY
  * 3. Config file
  */
 export function getApiKey(cliKey?: string): string | undefined {
@@ -60,7 +60,7 @@ export function getApiKey(cliKey?: string): string | undefined {
   }
 
   // 2. Environment variable
-  const envKey = process.env.XAI_API_KEY;
+  const envKey = process.env.OPENROUTER_API_KEY;
   if (envKey) {
     return envKey;
   }

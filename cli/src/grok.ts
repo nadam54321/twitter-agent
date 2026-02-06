@@ -1,6 +1,6 @@
 /**
  * Grok API client for x-research CLI
- * Handles communication with xAI's Grok API
+ * Handles communication with xAI's Grok model via OpenRouter
  */
 
 export interface ResearchResult {
@@ -54,8 +54,8 @@ export interface StreamCallbacks {
   onError?: (error: Error) => void;
 }
 
-const GROK_API_URL = "https://api.x.ai/v1/chat/completions";
-const DEFAULT_MODEL = "grok-4-1-fast-reasoning";
+const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
+const DEFAULT_MODEL = "x-ai/grok-4.1-fast";
 
 const SYSTEM_PROMPT = `You are a research assistant specializing in finding information on X (Twitter) and the web.
 
@@ -80,11 +80,13 @@ export async function research(
 
   callbacks?.onStart?.();
 
-  const response = await fetch(GROK_API_URL, {
+  const response = await fetch(OPENROUTER_API_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${apiKey}`,
+      "HTTP-Referer": "https://x-research-cli.local",
+      "X-Title": "x-research",
     },
     body: JSON.stringify({
       model: DEFAULT_MODEL,
@@ -93,19 +95,13 @@ export async function research(
         { role: "user", content: query },
       ],
       stream: false,
-      search_parameters: {
-        mode: "auto",
-        sources: [
-          { type: "x" },
-          { type: "web" }
-        ]
-      },
+      plugins: [{ id: "web", engine: "native" }],
     }),
   });
 
   if (!response.ok) {
     const errorText = await response.text();
-    const error = new Error(`Grok API error: ${response.status} - ${errorText}`);
+    const error = new Error(`OpenRouter API error: ${response.status} - ${errorText}`);
     callbacks?.onError?.(error);
     throw error;
   }
@@ -154,11 +150,13 @@ export async function researchStream(
 
   callbacks?.onStart?.();
 
-  const response = await fetch(GROK_API_URL, {
+  const response = await fetch(OPENROUTER_API_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${apiKey}`,
+      "HTTP-Referer": "https://x-research-cli.local",
+      "X-Title": "x-research",
     },
     body: JSON.stringify({
       model: DEFAULT_MODEL,
@@ -167,19 +165,13 @@ export async function researchStream(
         { role: "user", content: query },
       ],
       stream: true,
-      search_parameters: {
-        mode: "auto",
-        sources: [
-          { type: "x" },
-          { type: "web" }
-        ]
-      },
+      plugins: [{ id: "web", engine: "native" }],
     }),
   });
 
   if (!response.ok) {
     const errorText = await response.text();
-    const error = new Error(`Grok API error: ${response.status} - ${errorText}`);
+    const error = new Error(`OpenRouter API error: ${response.status} - ${errorText}`);
     callbacks?.onError?.(error);
     throw error;
   }

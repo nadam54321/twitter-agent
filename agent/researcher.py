@@ -1,37 +1,48 @@
 """
-X/Twitter Research Agent using Grok API.
+X/Twitter Research Agent using Grok via OpenRouter.
 
 This module provides the XResearcher class that uses xAI's Grok model
-with x_search() and web_search() tools for intelligent research.
+via OpenRouter with native x_search and web_search capabilities.
 """
 
-from typing import Any
+import os
 import time
-from xai_sdk import Client
-from xai_sdk.chat import user
-from xai_sdk.tools import web_search, x_search
+from typing import Any
+
+from openai import OpenAI
 
 
 class XResearcher:
     """
-    X/Twitter researcher powered by Grok's agentic search capabilities.
+    X/Twitter researcher powered by Grok's agentic search capabilities via OpenRouter.
 
-    Uses grok-4-1-fast model with x_search() and web_search() tools
-    to perform intelligent research on Twitter/X and the web.
+    Uses x-ai/grok-4.1-fast model through OpenRouter with native x_search()
+    and web_search() tools for intelligent research on Twitter/X and the web.
     """
 
     def __init__(self):
         """
         Initialize the XResearcher.
 
-        Reads XAI_API_KEY from environment automatically via Client().
+        Reads OPENROUTER_API_KEY from environment.
         """
-        self.client = Client()
-        self.model = "grok-4-1-fast"
+        api_key = os.environ.get("OPENROUTER_API_KEY")
+        if not api_key:
+            raise ValueError("OPENROUTER_API_KEY environment variable is required")
+
+        self.client = OpenAI(
+            base_url="https://openrouter.ai/api/v1",
+            api_key=api_key,
+            default_headers={
+                "HTTP-Referer": "https://x-research-agent.local",
+                "X-Title": "x-research",
+            },
+        )
+        self.model = "x-ai/grok-4.1-fast"
 
     def research(self, query: str) -> dict[str, Any]:
         """
-        Perform research using Grok's agentic search.
+        Perform research using Grok's agentic search via OpenRouter.
 
         Args:
             query: The research question or topic to investigate
@@ -46,73 +57,56 @@ class XResearcher:
         start_time = time.time()
 
         try:
-            # Create chat with tools and streaming enabled
-            chat = self.client.chat.create(
+            # Call OpenRouter with native web search plugin (enables both x_search and web_search)
+            response = self.client.chat.completions.create(
                 model=self.model,
-                tools=[
-                    web_search(),
-                    x_search(),
+                messages=[
+                    {"role": "user", "content": query},
                 ],
-                include=[
-                    "inline_citations",
-                    "verbose_streaming",
-                ],
+                extra_body={
+                    "plugins": [{"id": "web", "engine": "native"}],
+                },
             )
-            chat.append(user(query))
-
-            # Stream and collect response silently
-            content = ""
-            tool_calls = []
-            response = None
-
-            for resp, chunk in chat.stream():
-                response = resp
-
-                # Track tool calls (silently)
-                if chunk.tool_calls:
-                    for tool_call in chunk.tool_calls:
-                        tool_calls.append(
-                            {
-                                "name": tool_call.function.name,
-                                "arguments": tool_call.function.arguments,
-                            }
-                        )
-
-                # Accumulate content
-                if chunk.content:
-                    content += chunk.content
 
             duration = time.time() - start_time
 
-            # Extract citations
-            citations = []
-            if response and response.citations:
-                citations = list(response.citations)
+            content = response.choices[0].message.content or ""
 
-            # Extract inline citations
+            # Extract citations from annotations (OpenRouter standardized format)
+            citations = []
             inline_citations = []
-            if (
-                response
-                and hasattr(response, "inline_citations")
-                and response.inline_citations
-            ):
-                inline_citations = list(response.inline_citations)
+            message = response.choices[0].message
+            if hasattr(message, "annotations") and message.annotations:
+                for annotation in message.annotations:
+                    if hasattr(annotation, "url_citation") and annotation.url_citation:
+                        url = annotation.url_citation.url
+                        if url:
+                            citations.append(url)
+                            inline_citations.append(
+                                {
+                                    "url": url,
+                                    "title": getattr(
+                                        annotation.url_citation, "title", ""
+                                    ),
+                                    "start_index": getattr(
+                                        annotation.url_citation, "start_index", 0
+                                    ),
+                                    "end_index": getattr(
+                                        annotation.url_citation, "end_index", 0
+                                    ),
+                                }
+                            )
 
             # Build metadata
+            usage = response.usage
             metadata = {
-                "model": self.model,
+                "model": response.model or self.model,
                 "tokens": {
-                    "input": response.usage.prompt_tokens
-                    if response and response.usage
-                    else 0,
-                    "output": response.usage.completion_tokens
-                    if response and response.usage
-                    else 0,
-                    "reasoning": response.usage.reasoning_tokens
-                    if response and response.usage
-                    else 0,
+                    "input": usage.prompt_tokens if usage else 0,
+                    "output": usage.completion_tokens if usage else 0,
+                    "reasoning": getattr(usage, "reasoning_tokens", 0) if usage else 0,
                 },
-                "tool_calls": tool_calls,
+                "tool_calls": [],
                 "duration_seconds": round(duration, 2),
             }
 

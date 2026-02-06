@@ -73,10 +73,10 @@ EXAMPLES:
   x-research "Latest news about OpenAI" --json
   x-research "Trending crypto discussions" --markdown -o report.md
   x-research "What are people saying about Grok?" --stream
-  x-research config --set-key xai-your-api-key-here
+  x-research config --set-key sk-or-v1-your-api-key-here
 
 ENVIRONMENT:
-  XAI_API_KEY          API key (can also be set via config)
+  OPENROUTER_API_KEY   API key (can also be set via config)
 
 CONFIG FILE:
   ${getConfigPath()}
@@ -242,7 +242,7 @@ async function handleResearch(args: ParsedArgs): Promise<void> {
     printError(
       "No API key found. Set it with:\n" +
         "  x-research config --set-key <your-key>\n" +
-        "  or set XAI_API_KEY environment variable"
+        "  or set OPENROUTER_API_KEY environment variable"
     );
     process.exit(1);
   }
